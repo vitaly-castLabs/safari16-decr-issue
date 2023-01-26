@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>FPS Template</title>
+        <script src="fps_safari_support.js"></script>
+        <script>
+
+            let serverCertificatePath = 'https://lic.staging.drmtoday.com/license-server-fairplay/cert/six';
+            let serverProcessSPCPath  = 'https://lic.staging.drmtoday.com/license-server-fairplay';
+
+            async function startVideo()
+            {
+                let video = document.querySelector('video');
+                video.addEventListener('error', onerror, false);
+
+                let mediaSource = new MediaSource;
+                video.srcObject = mediaSource;
+                await waitFor(mediaSource, 'sourceopen');
+
+                let sourceBuffer = mediaSource.addSourceBuffer('video/mp4');
+                await fetchAndWaitForEncrypted(video, sourceBuffer, 'out-2-encr.mp4');
+            }
+
+            function onerror(event) {
+                alert('A video playback error occurred');
+            }
+
+            async function encrypted(event) {
+                try {
+                    let initDataType = event.initDataType;
+                    if (initDataType !== 'sinf') {
+                        window.console.error(`Received unexpected initialization data type "${initDataType}"`);
+                        return;
+                    }
+
+                    let video = event.target;
+                    if (!video.mediaKeys) {
+                        let access = await navigator.requestMediaKeySystemAccess('com.apple.fps', [{
+                            initDataTypes: [initDataType],
+                            //audioCapabilities: [{ contentType: 'audio/mp4', robustness: '' }],
+                            videoCapabilities: [{ contentType: 'video/mp4', robustness: '' }],
+                            distinctiveIdentifier: 'not-allowed',
+                            persistentState: 'not-allowed',
+                            sessionTypes: ['temporary']
+                        }]);
+
+                        let keys = await access.createMediaKeys();
+                        await keys.setServerCertificate(window.certificate);
+                        await video.setMediaKeys(keys);
+                    }
+
+                    let initData = event.initData;
+
+                    let session = video.mediaKeys.createSession();
+                    session.generateRequest(initDataType, initData);
+
+                    let message = await waitFor(session, 'message');
+                    let response = await getResponse(message, serverProcessSPCPath);
+                    await session.update(response);
+
+                    return session;
+                } catch(e) {
+                    alert(`Could not start encrypted playback due to exception "${e}"`)
+                }
+            }
+
+            window.addEventListener('load', loadCertificate, {once: true});
+        </script>
+    </head>
+    <body>
+        <video controls playsinline autoplay style='width: 100%; max-width: 100%'></video>
+    </body>
+</html>
