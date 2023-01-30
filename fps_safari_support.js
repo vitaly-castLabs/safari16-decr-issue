@@ -47,12 +47,18 @@ async function fetchAndWaitForEncrypted(video, sourceBuffer, url) {
 
 async function loadCertificate()
 {
-    try {
-        let response = await fetch(serverCertificatePath);
-        window.certificate = await response.arrayBuffer();
-        startVideo();
-    } catch(e) {
-        window.console.error(`Could not load certificate at ${serverCertificatePath}`);
+    if (!navigator.vendor.includes('Apple')) {
+        alert('This demo will only work with Safari');
+    }
+    else {
+        try {
+            let response = await fetch(serverCertificatePath);
+            window.certificate = await response.arrayBuffer();
+            startVideo();
+        }
+        catch(e) {
+            window.console.error(`Could not load certificate at ${serverCertificatePath}`);
+        }
     }
 }
 
