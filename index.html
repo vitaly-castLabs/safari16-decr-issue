@@ -4,8 +4,9 @@
         <title>FPS Template</title>
         <script src="fps_safari_support.js"></script>
         <script>
-
-            let serverCertificatePath = 'https://lic.staging.drmtoday.com/license-server-fairplay/cert/six';
+            const params = new URLSearchParams(window.location.search);
+            const merchant = params.get('merchant');
+            let serverCertificatePath = `https://lic.staging.drmtoday.com/license-server-fairplay/cert/${merchant}`;
             let serverProcessSPCPath  = 'https://lic.staging.drmtoday.com/license-server-fairplay';
 
             async function startVideo()
